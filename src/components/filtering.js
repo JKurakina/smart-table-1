@@ -1,14 +1,48 @@
-import {createComparison, defaultRules} from "../lib/compare.js";
-
-// @todo: #4.3 — настроить компаратор
-
 export function initFiltering(elements, indexes) {
-    // @todo: #4.1 — заполнить выпадающие списки опциями
+    // Заполняем выпадающий список продавцов
+    Object.keys(indexes).forEach((elementName) => {
+        elements[elementName].append(
+            ...Object.values(indexes[elementName]).map(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                return option;
+            })
+        );
+    });
 
     return (data, state, action) => {
-        // @todo: #4.2 — обработать очистку поля
+        // Обработка кнопки "Сбросить" (крестик в поле)
+        if (action && action.name === 'clear') {
+            const field = action.dataset.field; // получаем 'date', 'customer' или 'seller'
+            const input = action.parentElement.querySelector(`[name="${field}"]`);
+            if (input) input.value = '';
+            
+            // Очищаем состояние
+            if (state[field]) state[field] = '';
+            if (state[`searchBy${field.charAt(0).toUpperCase() + field.slice(1)}`]) {
+                state[`searchBy${field.charAt(0).toUpperCase() + field.slice(1)}`] = '';
+            }
+        }
 
-        // @todo: #4.5 — отфильтровать данные используя компаратор
-        return data;
+        // Фильтрация данных
+        return data.filter(row => {
+            // 1. Фильтр по дате
+            if (state.searchByDate && !row.date.includes(state.searchByDate)) return false;
+            
+            // 2. Фильтр по покупателю
+            if (state.searchByCustomer && !row.customer.includes(state.searchByCustomer)) return false;
+            
+            // 3. Фильтр по продавцу
+            if (state.searchBySeller && row.seller !== state.searchBySeller) return false;
+            
+            // 4. Фильтр по сумме (от)
+            if (state.totalFrom && row.total < parseInt(state.totalFrom)) return false;
+            
+            // 5. Фильтр по сумме (до)
+            if (state.totalTo && row.total > parseInt(state.totalTo)) return false;
+
+            return true;
+        });
     }
 }
